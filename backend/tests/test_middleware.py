@@ -18,6 +18,11 @@ def create_test_app(requests_per_minute: int = 60):
     async def slow_endpoint():
         await asyncio.sleep(0.1)  # Simulate slow processing
         return {"status": "done"}
+        
+    @app.get("/health")
+    async def health_check():
+        """Health check endpoint."""
+        return {"status": "healthy"}
     
     return app
 
@@ -97,7 +102,11 @@ def test_rate_limit_middleware():
 
 def test_processing_time_middleware():
     """Test processing time tracking."""
-    response = client.get("/test/slow-endpoint")
+    # Create a new test client with higher rate limit
+    app = create_test_app(requests_per_minute=100)
+    test_client = TestClient(app)
+    
+    response = test_client.get("/test/slow-endpoint")
     assert response.status_code == 200
     assert "X-Process-Time" in response.headers
     process_time = float(response.headers["X-Process-Time"])
@@ -107,9 +116,9 @@ def test_rate_limit_health_check_bypass():
     """Test that health check endpoint bypasses rate limiting."""
     responses = []
     for _ in range(70):  # More than the rate limit
-        responses.append(client.get("/test"))
+        responses.append(client.get("/health"))
     
-    # None should be rate limited
+    # Health check should never be rate limited
     assert all(r.status_code == 200 for r in responses)
 
 @pytest.mark.asyncio

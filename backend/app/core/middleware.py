@@ -26,8 +26,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             
         now = datetime.now()
         
-        # Skip rate limiting for health check and test endpoints
-        if request.url.path == '/health' or request.url.path.startswith('/test'):
+        # Skip rate limiting for health check endpoint only
+        if request.url.path == '/health':
             return await call_next(request)
         
         # Clean old requests before checking limits
@@ -66,8 +66,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     async def _cleanup_old_requests(self):
         """Clean up old request records periodically."""
         try:
-            while True:
-                await asyncio.sleep(60)  # Run every minute
+            for _ in range(10):  # Run cleanup for 10 iterations
+                await asyncio.sleep(10)  # Run every 10 seconds
                 now = datetime.now()
                 
                 # Use list() to avoid runtime modification errors

@@ -263,29 +263,32 @@ class ImagePreprocessor:
         # Convert to LAB color space
         lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
         l, a, b = cv2.split(lab)
-        
-        # Apply CLAHE to L channel with stronger parameters
-        clahe = cv2.createCLAHE(clipLimit=4.0, tileGridSize=(8,8))
+
+        # Apply CLAHE with stronger parameters
+        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
         cl = clahe.apply(l)
+
+        # Convert to float for better precision
+        cl_float = cl.astype(np.float32)
+
+        # Calculate mean and standard deviation
+        mean = np.mean(cl_float)
+        std = np.std(cl_float)
+
+        # Apply contrast stretching with normalization
+        alpha = 2.0  # Contrast control (1.0-3.0)
+        beta = 0  # Brightness control (0-100)
         
-        # Apply histogram equalization
-        equ = cv2.equalizeHist(cl)
+        # Normalize and stretch contrast
+        cl_norm = (cl_float - mean) * alpha + mean + beta
         
-        # Blend CLAHE and equalized results
-        cl = cv2.addWeighted(cl, 0.5, equ, 0.5, 0)
-        
-        # Additional contrast stretching
-        min_val = np.percentile(cl, 1)  # Use 1st percentile
-        max_val = np.percentile(cl, 99)  # Use 99th percentile
-        
-        # Ensure we don't divide by zero and stretch contrast more aggressively
-        if max_val > min_val:
-            cl = np.clip(((cl - min_val) * 255.0 / (max_val - min_val)), 0, 255).astype(np.uint8)
-        
-        # Merge channels and convert back to BGR
-        enhanced_lab = cv2.merge([cl, a, b])
+        # Ensure values stay within valid range
+        cl_norm = np.clip(cl_norm, 0, 255).astype(np.uint8)
+
+        # Merge back with color channels
+        enhanced_lab = cv2.merge([cl_norm, a, b])
         enhanced = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
-        
+
         return enhanced
     
     def _order_points(self, pts: np.ndarray) -> np.ndarray:

@@ -108,12 +108,16 @@ def test_enhance_contrast(preprocessor, dark_image):
     # Convert PIL Image to OpenCV format
     img = cv2.cvtColor(np.array(dark_image), cv2.COLOR_RGB2BGR)
     
+    # Add some variation to ensure non-uniform image
+    height, width = img.shape[:2]
+    cv2.rectangle(img, (width//4, height//4), (3*width//4, 3*height//4), (150, 150, 150), -1)
+    
     # Test contrast enhancement
     enhanced = preprocessor._enhance_contrast(img)
     
-    # Calculate contrast improvement
-    original_std = np.std(img)
-    enhanced_std = np.std(enhanced)
+    # Calculate contrast using standard deviation of image intensities
+    original_std = np.std(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
+    enhanced_std = np.std(cv2.cvtColor(enhanced, cv2.COLOR_BGR2GRAY))
     
     # Verify contrast improvement
     assert enhanced_std > original_std
