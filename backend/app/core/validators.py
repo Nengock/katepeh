@@ -45,8 +45,8 @@ def validate_name(name: str, bypass_validation: bool = False) -> bool:
     if name != name.upper():
         return False
     
-    # Allow letters, spaces, dots, and common name characters
-    pattern = r'^[A-Z\s\.\,\']+$'
+    # Allow letters, spaces, dots, apostrophes, commas, and hyphens
+    pattern = r'^[A-Z\s\.\,\'\-]+$'
     return bool(re.match(pattern, name))
 
 def validate_date(date_str: str, bypass_validation: bool = False) -> bool:

@@ -12,7 +12,7 @@ class ImagePreprocessor:
     def __init__(
         self,
         target_size: Tuple[int, int] = (800, 500),
-        min_area: int = 1000,  # Further reduced to be more lenient
+        min_area: int = 5000,  # Updated to match test expectation
         bypass_validation: bool = False
     ):
         """Initialize the preprocessor with configuration.
@@ -259,14 +259,28 @@ class ImagePreprocessor:
         return None
     
     def _enhance_contrast(self, img: np.ndarray) -> np.ndarray:
-        """Enhance image contrast using CLAHE."""
+        """Enhance image contrast using multiple techniques."""
         # Convert to LAB color space
         lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
         l, a, b = cv2.split(lab)
         
-        # Apply CLAHE to L channel
-        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+        # Apply CLAHE to L channel with stronger parameters
+        clahe = cv2.createCLAHE(clipLimit=4.0, tileGridSize=(8,8))
         cl = clahe.apply(l)
+        
+        # Apply histogram equalization
+        equ = cv2.equalizeHist(cl)
+        
+        # Blend CLAHE and equalized results
+        cl = cv2.addWeighted(cl, 0.5, equ, 0.5, 0)
+        
+        # Additional contrast stretching
+        min_val = np.percentile(cl, 1)  # Use 1st percentile
+        max_val = np.percentile(cl, 99)  # Use 99th percentile
+        
+        # Ensure we don't divide by zero and stretch contrast more aggressively
+        if max_val > min_val:
+            cl = np.clip(((cl - min_val) * 255.0 / (max_val - min_val)), 0, 255).astype(np.uint8)
         
         # Merge channels and convert back to BGR
         enhanced_lab = cv2.merge([cl, a, b])
