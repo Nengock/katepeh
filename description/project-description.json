@@ -1,0 +1,175 @@
+{
+    "projectName": "Indonesian KTP Recognition System",
+    "version": "1.0.0",
+    "description": "Web application for extracting data from Indonesian National ID cards (KTP) using computer vision and OCR techniques",
+    "objectives": [
+      "Create a web interface for uploading KTP images",
+      "Process and extract key demographic information from KTP images",
+      "Display and allow download of extracted information",
+      "Ensure data privacy and security"
+    ],
+    "technicalComponents": {
+      "frontend": {
+        "framework": "React",
+        "libraries": [
+          "react-dropzone for image upload",
+          "tailwindcss for styling",
+          "axios for API requests"
+        ],
+        "features": [
+          "Drag-and-drop image upload area",
+          "Image preview functionality",
+          "Form displaying extracted information with edit capability",
+          "Export functionality (JSON/CSV)"
+        ]
+      },
+      "backend": {
+        "framework": "FastAPI",
+        "libraries": [
+          "Pydantic for data validation",
+          "Python-multipart for handling file uploads",
+          "Pillow for image processing",
+          "Transformers for model implementation"
+        ],
+        "endpoints": [
+          "/api/upload - POST endpoint for image upload",
+          "/api/extract - POST endpoint for OCR extraction",
+          "/api/export - GET endpoint for exporting data"
+        ]
+      },
+      "machinelearning": {
+        "models": [
+          {
+            "task": "Document layout analysis",
+            "model": "microsoft/layoutlmv3-base",
+            "purpose": "Identify and segment different regions on the KTP"
+          },
+          {
+            "task": "Text recognition (OCR)",
+            "model": "indonesian-nlp/wav2vec2-indonesian",
+            "purpose": "Extract text from identified regions"
+          },
+          {
+            "task": "Information extraction",
+            "model": "indolem/indobert-base-uncased",
+            "purpose": "Classify and extract specific fields from OCR text"
+          }
+        ],
+        "dataProcessing": {
+          "preprocessing": [
+            "Image resizing and normalization",
+            "Perspective correction",
+            "Contrast enhancement"
+          ],
+          "postprocessing": [
+            "Text cleaning and normalization",
+            "Field validation (NIK format, dates, etc.)",
+            "Confidence scoring"
+          ]
+        }
+      }
+    },
+    "dataExtractionFields": {
+      "required": [
+        {
+          "field": "NIK",
+          "description": "National ID Number (16 digits)",
+          "validation": "regex: ^\\d{16}$"
+        },
+        {
+          "field": "name",
+          "description": "Full name as appears on ID",
+          "validation": "string"
+        },
+        {
+          "field": "birthPlace",
+          "description": "Place of birth",
+          "validation": "string"
+        },
+        {
+          "field": "birthDate",
+          "description": "Date of birth",
+          "validation": "date format: DD-MM-YYYY"
+        },
+        {
+          "field": "gender",
+          "description": "Gender (LAKI-LAKI/PEREMPUAN)",
+          "validation": "enum: ['LAKI-LAKI', 'PEREMPUAN']"
+        },
+        {
+          "field": "address",
+          "description": "Full residential address",
+          "validation": "string"
+        }
+      ],
+      "optional": [
+        {
+          "field": "bloodType",
+          "description": "Blood type if present",
+          "validation": "enum: ['A', 'B', 'AB', 'O', '-']"
+        },
+        {
+          "field": "religion",
+          "description": "Religion",
+          "validation": "string"
+        },
+        {
+          "field": "maritalStatus",
+          "description": "Marital status",
+          "validation": "string"
+        },
+        {
+          "field": "occupation",
+          "description": "Occupation/profession",
+          "validation": "string"
+        },
+        {
+          "field": "nationality",
+          "description": "Nationality (WNI/WNA)",
+          "validation": "string"
+        },
+        {
+          "field": "validUntil",
+          "description": "ID validity date",
+          "validation": "string or 'SEUMUR HIDUP'"
+        }
+      ]
+    },
+    "privacyAndSecurity": {
+      "dataHandling": [
+        "No uploaded images or extracted data stored on server beyond processing",
+        "All processing done locally within the application",
+        "No external API calls with KTP data"
+      ],
+      "userPrivacy": [
+        "Clear privacy policy on data usage",
+        "Option to manually obscure sensitive information before upload",
+        "Client-side processing where possible"
+      ]
+    },
+    "deployment": {
+      "requirements": {
+        "ram": ">=8GB",
+        "storage": ">=10GB for application and models",
+        "gpu": "Optional but recommended for faster inference"
+      },
+      "containerization": {
+        "docker": {
+          "frontend": "Node.js-based image",
+          "backend": "Python-based image with ML dependencies"
+        }
+      }
+    },
+    "testing": {
+      "datasets": [
+        "Synthetic KTP images with various formats",
+        "Different lighting conditions and angles",
+        "Partially obscured IDs"
+      ],
+      "metrics": [
+        "Field extraction accuracy",
+        "Processing time",
+        "Error rate on malformed inputs"
+      ]
+    }
+  }
