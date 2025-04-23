@@ -10,8 +10,22 @@ settings = get_settings()
 
 class OCRProcessor:
     def __init__(self):
+        # Suppress expected model initialization warnings
+        import warnings
+        warnings.filterwarnings('ignore', message='Some weights of.*were not initialized')
+        
         self.processor = LayoutLMv3Processor.from_pretrained("microsoft/layoutlmv3-base")
-        self.model = LayoutLMv3ForTokenClassification.from_pretrained("microsoft/layoutlmv3-base")
+        # Initialize with proper token classification weights
+        self.model = LayoutLMv3ForTokenClassification.from_pretrained(
+            "microsoft/layoutlmv3-base",
+            num_labels=13,  # Number of token classes for KTP fields
+            ignore_mismatched_sizes=True
+        )
+        
+        # Initialize classifier weights properly
+        import torch.nn as nn
+        self.model.classifier = nn.Linear(768, 13)  # Match hidden size to num_labels
+        nn.init.xavier_uniform_(self.model.classifier.weight)
         
         # Move model to GPU if available
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -9,13 +9,14 @@ from .validators import (
     validate_marital_status, validate_blood_type, validate_gender,
     validate_nationality, validate_occupation, validate_valid_until
 )
-
+from .validators import validate_nik, validate_name, validate_date
+from .validators import validate_birth_place, validate_address  
 class KTPData(BaseModel):
     nik: str = Field(..., description="16-digit National ID Number")
     name: str = Field(..., description="Full name as appears on ID")
     birth_place: str = Field(..., description="Place of birth")
     birth_date: str = Field(..., description="Date of birth (DD-MM-YYYY)")
-    gender: Gender = Field(..., description="Gender (LAKI-LAKI/PEREMPUAN)")
+    gender: Optional[str] = Field(None, description="Gender (e.g., LAKI-LAKI or PEREMPUAN)")
     address: str = Field(..., description="Full residential address")
     blood_type: Optional[BloodType] = Field(None, description="Blood type if present")
     religion: Optional[Religion] = Field(None, description="Religion")

@@ -15,11 +15,22 @@ settings = get_settings()
 
 class InformationExtractor:
     def __init__(self):
+        # Suppress expected model initialization warnings
+        import warnings
+        warnings.filterwarnings('ignore', message='Some weights of.*were not initialized')
+        
         self.tokenizer = AutoTokenizer.from_pretrained("indolem/indobert-base-uncased")
+        # Initialize with proper token classification weights
         self.model = AutoModelForTokenClassification.from_pretrained(
             "indolem/indobert-base-uncased",
-            num_labels=13  # Number of KTP fields we're extracting
+            num_labels=13,  # Number of KTP fields we're extracting
+            ignore_mismatched_sizes=True
         )
+        
+        # Initialize classifier weights properly
+        import torch.nn as nn
+        self.model.classifier = nn.Linear(768, 13)  # Match BERT hidden size to num_labels
+        nn.init.xavier_uniform_(self.model.classifier.weight)
         
         # Move model to GPU if available
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

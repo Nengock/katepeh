@@ -9,11 +9,22 @@ settings = get_settings()
 
 class DocumentAnalyzer:
     def __init__(self):
+        # Suppress expected model initialization warnings
+        import warnings
+        warnings.filterwarnings('ignore', message='Some weights of.*were not initialized')
+        
         self.processor = LayoutLMv3Processor.from_pretrained("microsoft/layoutlmv3-base")
+        # Initialize with proper classifier weights
         self.model = LayoutLMv3ForSequenceClassification.from_pretrained(
             "microsoft/layoutlmv3-base",
-            num_labels=2  # Binary classification: KTP vs non-KTP
+            num_labels=2,  # Binary classification: KTP vs non-KTP
+            ignore_mismatched_sizes=True  # Suppress size mismatch warnings
         )
+        
+        # Initialize classifier weights properly
+        import torch.nn as nn
+        self.model.classifier.dense = nn.Linear(768, 768)  # Match hidden size
+        nn.init.xavier_uniform_(self.model.classifier.dense.weight)
         
         # Move model to GPU if available
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

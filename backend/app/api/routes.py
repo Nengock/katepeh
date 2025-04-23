@@ -100,27 +100,54 @@ async def extract_information(
     file: UploadFile,
     bypass_validation: bool = Query(False, description="Whether to bypass validation checks")
 ):
-    contents = await file.read()
-    # Create preprocessor with bypass_validation setting
-    preprocessor = ImagePreprocessor(bypass_validation=bypass_validation)
-    image = preprocessor.process(io.BytesIO(contents))
-    
-    # Analyze document layout
-    layout = document_analyzer.analyze(image)
-    
-    # Extract text using OCR
-    text = ocr_processor.extract_text(layout)
-    
-    # Extract and structure information
-    ktp_data, confidence = info_extractor.extract(text)
-    
-    # Apply bypass_validation flag
-    ktp_data = KTPData(bypass_validation=bypass_validation, **ktp_data.dict())
-    
-    return ExtractionResponse(
-        ktp_data=ktp_data,
-        confidence_score=confidence
-    )
+    """Extract information from a KTP image."""
+    try:
+        # Read file contents
+        contents = await file.read()
+        image = Image.open(io.BytesIO(contents))
+        
+        # Preprocess image
+        preprocessed_image = image_preprocessor.preprocess(image, bypass_validation=bypass_validation)
+        
+        # Analyze document layout
+        layout_info = document_analyzer.analyze_layout(preprocessed_image)
+        if not bypass_validation and not layout_info["is_ktp"]:
+            raise ValidationError(
+                "The uploaded image does not appear to be a valid KTP. " +
+                f"Confidence score: {layout_info['confidence']:.2f}"
+            )
+            
+        # Extract text from image
+        text_regions = ocr_processor.process_image(preprocessed_image)
+        if not text_regions and not bypass_validation:
+            raise ValidationError("No text could be extracted from the image")
+            
+        # Extract structured information
+        extracted_info = info_extractor.extract_information(text_regions)
+        if not extracted_info and not bypass_validation:
+            raise ValidationError("Could not extract KTP information from the image")
+            
+        # Calculate confidence score based on layout and extraction results
+        confidence_score = layout_info["confidence"]
+        
+        # Create KTP data model
+        ktp_data = KTPData(bypass_validation=bypass_validation, **extracted_info)
+        
+        return ExtractionResponse(
+            ktp_data=ktp_data,
+            confidence_score=confidence_score
+        )
+        
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=422,
+            detail={"error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"error": f"Failed to process image: {str(e)}"}
+        )
 
 @router.get("/export/{format}")
 async def export_data(format: str, ktp_data: KTPData):
